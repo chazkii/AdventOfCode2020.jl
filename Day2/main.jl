@@ -35,22 +35,23 @@ their respective policies.
 How many passwords are valid according to their policies?
 
 """
+
+function processfile(func::Function)::Int
+    return sum([func(l) for l = readlines("./Day2/input.txt")])
+end
+
 function countvalidpasswords()::Int
-    lines = readlines("./Day2/input.txt")
-    println("Input = $(length(lines))")
-    entries = [match(r"(?P<min>\d+)-(?P<max>\d+) (?P<letter>\w): (?P<password>.*)$", line) for line = lines]
-    println("Matches = $(length(entries))")
-    @assert length(lines) == length(entries)
-    valid_count = 0
-    for m in entries
-        count = length(split(m[:password], m[:letter])) - 1
-        if parse(Int, m[:max]) >= count && count >= parse(Int, m[:min])
-            valid_count += 1
-        else
-            println("$(m[:min])-$(m[:max]) != $(count) $(m[:letter]) $(m[:password])")
-        end
-    end
-    valid_count
+    return processfile(countvalidpasswords)
+end
+
+function countvalidpasswords(input::String)::Bool
+    m = match(r"(\d+)-(\d+) (\w): (.*)$", input)
+    max = parse(Int, m[2])
+    min = parse(Int, m[1])
+    letter = m[3]
+    password = m[4]
+    count = length(split(password, letter)) - 1
+    return max >= count >= min
 end
 
 
@@ -80,15 +81,15 @@ How many passwords are valid according to the new interpretation of the policies
 
 """
 function countvalidpasswordsofficial()::Int
-    return sum([countvalidpasswordsofficial(l) for l = readlines("./Day2/input.txt")])
+    return processfile(countvalidpasswordsofficial)
 end
 
 function countvalidpasswordsofficial(input::String)::Bool
-    m = match(r"(?P<pos_1>\d+)-(?P<pos_2>\d+) (?P<letter>\w): (?P<password>.*)$", input)
-    password = m[:password]
-    letter = first(m[:letter])
-    pos_1 = parse(Int, m[:pos_1])
-    pos_2 = parse(Int, m[:pos_2])
+    m = match(r"(\d+)-(\d+) (\w): (.*)$", input)
+    password = m[4]
+    letter = first(m[3])
+    pos_1 = parse(Int, m[1])
+    pos_2 = parse(Int, m[2])
     char_1 = password[pos_1]
     char_2 = password[pos_2]
     return (char_1 == letter && char_2 != letter) || (char_2 == letter && char_1 != letter)
