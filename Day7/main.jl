@@ -136,32 +136,47 @@ How many individual bags are required inside your single shiny gold bag?
 """
 
 
-function countbags()::Int
-    blob = strip(read("./Day7/input.txt", String))
+function countbags(filepath::String)::Int
+    blob = strip(read(filepath, String))
     rules = split(blob, "\n")
-    mappings = DefaultDict{String, Set{String}}(Set{String})
+    mappings = DefaultDict{String, Vector{Tuple{Int, String}}}(Vector{Tuple{Int, String}})
     for rule in rules
         inner, outers = parserule(convert(String, rule))
-        # wrong way!
-        # for o in outers
-        #     push!(mappings[inner], o)
-        # end
         for o in outers
-            push!(mappings[o], inner)
+            push!(mappings[inner], o)
         end
     end
     result = Set{String}()
-    findgold!(mappings, result, "shiny gold")
-    return length(result)
+    return countbags(mappings, result, "shiny gold")
 end
 
 function parserule(rule::String)::Tuple{String, Vector{Tuple{Int, String}}}
     parts = split(rule, " contain ")
     outer = parts[:1]
-    m = match(r"(\w+ \w+) bags", outer)
-    outer_color = m[:1]
+    outer_match = match(r"(\w+ \w+) bags", outer)
+    outer_color = outer_match[:1]
     inner_rules_string = parts[:2]
     matches = collect(eachmatch(r"(\d+) (\w+ \w+) bag", inner_rules_string))
-    inner_colours = unique(convert(String, m[:1]) for m in matches)
+    inner_colours = [(parse(Int, m[:1]), convert(String, m[:2])) for m in matches]
     return (outer_color, inner_colours)
 end
+
+function countbags(mappings::DefaultDict{String, Vector{Tuple{Int, String}}}, colours::Set{String}, key::String)::Int
+    if length(mappings[key]) == 0
+        println("1 $key")
+        return 0
+    end
+    total = 0
+    println("$key - start")
+    for (count, colour) in mappings[key]
+        println("$count $colour")
+        total += count
+        total += count * sum(countbags(mappings, colours, colour))
+    end
+    println("$key - total - $total")
+    println("$key - end")
+    return total
+end
+
+@test countbags("./Day7/test-input-1.txt") == 32
+@test countbags("./Day7/test-input-2.txt") == 126
