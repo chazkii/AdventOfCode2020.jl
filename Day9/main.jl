@@ -145,35 +145,14 @@ function findweakness(filepath, num)
     code = [parse(Int, l) for l in readlines(filepath)]
     i = 1
     j = 2
-    jgt = false
-    ilt = false
-    found = false
-    while !found
-        while !jgt
-            if num == sum(code[i:j])
-                found = true
-                return minimum(code[i:j]) + maximum(code[i:j])
-            elseif num < sum(code[i:j])
-                jgt = true
-                ilt = false
-                break
-            end
+    while i < length(code)
+        if num == sum(code[i:j])
+            return minimum(code[i:j]) + maximum(code[i:j])
+        elseif num > sum(code[i:j])
             j += 1
-            println("j = $j")
-        end
-        while !ilt
-            if num == sum(code[i:j])
-                found = true
-                return minimum(code[i:j]) + maximum(code[i:j])
-            elseif num > sum(code[i:j])
-                ilt = true
-                jgt = false
-                break
-            end
+        elseif num < sum(code[i:j])
             i += 1
-            println("i = $i")
         end
     end
+    return -1
 end
-
-# 89687141
