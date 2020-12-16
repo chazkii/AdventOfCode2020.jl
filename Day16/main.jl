@@ -272,148 +272,61 @@ nearby_tickets = [
     [880,257,383,873,382,499,550,60,216,913,94,605,82,928,406,298,854,253,395,318],
     [183,940,255,652,182,723,546,634,222,612,99,229,840,719,81,63,62,645,855,380]
 ]
+using Test
+function isvalidnum(num, vrs)
+    return any(vr.lower <= num <= vr.upper for vr in vrs)
+end
 
-function errorrate(vr, nt)
+@test isvalidnum(7, [(lower=1, upper=3), (lower=5, upper=7)]) == true
+@test isvalidnum(8, [(lower=1, upper=3), (lower=5, upper=7)]) == false
+
+function getinvalid(ticket, valid_ranges_list)
+    invalid = copy(ticket)
+    for (_, vr) in valid_ranges_list
+        invalid = filter(num -> !isvalidnum(num, vr), invalid)
+    end
+    return invalid
+end
+
+function errorrate(valid_ranges_list, tickets)
     invalid_vals = Int[]
-    for ticket in nt
-        for num in ticket
-            valid = false
-            for rs in values(vr)
-                for r in rs
-                    if r.lower <= num <= r.upper
-                        valid = true
-                        break
-                    end
-                end
-            end
-            if !valid
-                push!(invalid_vals, num)
-            end
-        end
+    for ticket in tickets
+        invalid_vals = vcat(invalid_vals, getinvalid(ticket, valid_ranges_list))
     end
     return sum(invalid_vals)
 end
-errorrate(test_valid_ranges, test_nearby_tickets)
+
+@test errorrate(test_valid_ranges, test_nearby_tickets) == 250
 errorrate(valid_ranges, nearby_tickets)
 
 
-function validtickets(vr, nt)
+function validtickets(valid_range_list, tickets)
     vts = []
-    for ticket in nt
-        invalid_vals = []
-        for num in ticket
-            valid = false
-            for rs in values(vr)
-                for r in rs
-                    if r.lower <= num <= r.upper
-                        valid = true
-                        break
-                    end
-                end
-            end
-            if !valid
-                push!(invalid_vals, num)
-            end
-        end
-        if length(invalid_vals) == 0
+    for ticket in tickets
+        if length(getinvalid(ticket, valid_range_list)) == 0
             push!(vts, ticket)
         end
     end
     return vts
 end
-validtickets(test_valid_ranges, test_nearby_tickets)
-vts = validtickets(valid_ranges, nearby_tickets)
-push!(vts, your_ticket)
-m = transpose(hcat(vts...))
-
-test_valid_ranges = Dict{String, Any}(
-    "class" => [(lower=0, upper=1), (lower=4, upper=19)],
-    "row" =>  [(lower=0, upper=5), (lower=8, upper=19)],
-    "seat" => [(lower=0, upper=13), (lower=16, upper=19)],
-)
-
-m = [3 9 18
-15 1 5
-5 14 9]
-using DataStructures
-function q2(m , valid_ranges, your_ticket)
-    names = []
-    l = length(m[:, 1])
-    q = Queue{Any}()
-    for (name, vrs) in valid_ranges
-        enqueue!(q, (name, vrs))
-    end
-    while length(q) > 0
-        (name, vrs) = dequeue!(q)
-        valid = false
-        for j = 1:size(m, 2)
-            col = m[:,j]
-            valid_nums = []
-            for r in vrs
-                valid_nums = vcat(valid_nums, filter(num -> r.lower <= num <= r.upper, col))
-                println(length(valid_nums))
-            end
-            if length(valid_nums) == length(col)
-                valid = true
-                println("$name in column $j")
-                push!(names, (j, name))
-                break
-            end
-        end
-        if !valid
-            println(name)
-            enqueue!(q, (name, vrs))
-        end
-    end
-    departure_idx = [j for (j, name) in names if startswith(name, "departure")]
-    println(departure_idx)
-    return prod([your_ticket[x] for x in departure_idx])
-end
 
 vts = validtickets(valid_ranges, nearby_tickets)
-push!(vts, your_ticket)
-m = transpose(hcat(vts...))
-q2(m, valid_ranges, your_ticket)
-your_ticket = [83,137,101,73,67,61,103,131,151,127,113,107,109,89,71,139,167,97,59,53]
-# too low 567118459741
-# too hgh 2177120872099
 
-function narrowest(valid_ranges)
-    narrowest_num = 0
-    narrowest = nothing
-    for (name, vrs) in valid_ranges
-        total = 0
-        for r in vrs
-            total += r.upper - r.lower
-        end
-        println("$name = $total")
-        if total > narrowest_num
-            narrowest_num = total
-            narrowest = (name, vrs)
-        end
-    end
-    return narrowest
-end
-narrowest(valid_ranges)
-println(length(col))
-length(m[:, 1])
-
-
-function q2(m, valid_ranges, your_ticket)
+function departurenum(valid_tickets, valid_ranges, your_ticket)
+    m = transpose(hcat(valid_tickets..., your_ticket))
     names = []
-    valid_ranges = copy(valid_ranges)
-    while length(valid_ranges) > 0
+    remaining_vrss = copy(valid_ranges)
+    while length(remaining_vrss) > 0
         for j = 1:size(m, 2)
-            valid_keys = countvalid(m[:,j], valid_ranges)
+            valid_keys = countvalid(m[:,j], remaining_vrss)
             if length(valid_keys) == 1
                 name =  valid_keys[1]
                 push!(names, (j, name))
-                pop!(valid_ranges, name)
+                pop!(remaining_vrss, name)
             end
         end
     end
     departure_idx = [j for (j, name) in names if startswith(name, "departure")]
-    println(departure_idx)
     return prod([your_ticket[x] for x in departure_idx])
 end
 
@@ -431,4 +344,4 @@ function countvalid(col, valid_ranges)
     return valid_keys
 end
 
-q2(m, valid_ranges, your_ticket)
+departurenum(vts, valid_ranges, your_ticket)
